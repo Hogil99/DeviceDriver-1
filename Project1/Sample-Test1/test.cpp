@@ -87,9 +87,7 @@ TEST_F(DeviceDriverFixture, WriteAllDoneTest)
 	EXPECT_CALL(mockFlash, read)
 		.Times(5);
 
-	deviceDriver.write(TEST_ADDR[0], 3);
-	deviceDriver.write(TEST_ADDR[1], 3);
-	deviceDriver.write(TEST_ADDR[2], 3);
-	deviceDriver.write(TEST_ADDR[3], 3);
-	deviceDriver.write(TEST_ADDR[4], 3);
+	for (long address : TEST_ADDR) {
+		deviceDriver.write(address, 3);
+	}
 }
