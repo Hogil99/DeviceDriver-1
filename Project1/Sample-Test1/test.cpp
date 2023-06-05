@@ -2,11 +2,10 @@
 #include <gmock/gmock.h>
 
 #include "../Project1/DeviceDriver.cpp"
+#include "../Project1/App.cpp"
 
 using namespace testing;
 using namespace std;
-
-const long TEST_ADDR[] = {0x00, 0x01, 0x02, 0x03, 0x04};
 
 class MockFlashM : public FlashMemoryDevice
 {
@@ -20,6 +19,7 @@ class DeviceDriverFixture : public Test
 public:
 	MockFlashM mockFlash;
 	DeviceDriver deviceDriver{ &mockFlash };
+	Application app;
 };
 
 TEST_F(DeviceDriverFixture, ReadFailExceptionCase) {
@@ -28,7 +28,7 @@ TEST_F(DeviceDriverFixture, ReadFailExceptionCase) {
 		.WillOnce(Return(0x01))
 		.WillRepeatedly(Return(0x00));
 
-	EXPECT_THROW(deviceDriver.read(TEST_ADDR[0]), ReadFailException);
+	EXPECT_THROW(deviceDriver.read(ADDR_LIST[0]), ReadFailException);
 }
 
 TEST_F(DeviceDriverFixture, Read5TimesTest) {
@@ -39,7 +39,7 @@ TEST_F(DeviceDriverFixture, Read5TimesTest) {
 	EXPECT_CALL(mockFlash, read)
 		.Times(5);
 
-	deviceDriver.read(TEST_ADDR[0]);
+	deviceDriver.read(ADDR_LIST[0]);
 }
 
 TEST_F(DeviceDriverFixture, ReadTimeMeasure200ms4Times) {
@@ -52,7 +52,7 @@ TEST_F(DeviceDriverFixture, ReadTimeMeasure200ms4Times) {
 
 	auto start = chrono::steady_clock::now();
 
-	deviceDriver.read(TEST_ADDR[0]);
+	deviceDriver.read(ADDR_LIST[0]);
 
 	auto end = chrono::steady_clock::now();
 	chrono::duration<double> elapsed = end - start;
@@ -65,7 +65,7 @@ TEST_F(DeviceDriverFixture,WriteFailExceptionTest)
 {
 	EXPECT_CALL(mockFlash, read)
 		.WillRepeatedly(Return(0xFF));
-	EXPECT_THROW(deviceDriver.write(TEST_ADDR[0], 0), WriteFailException);
+	EXPECT_THROW(deviceDriver.write(ADDR_LIST[0], 0), WriteFailException);
 }
 
 TEST_F(DeviceDriverFixture, SingleWriteDoneTest)
@@ -76,7 +76,7 @@ TEST_F(DeviceDriverFixture, SingleWriteDoneTest)
 	EXPECT_CALL(mockFlash, read)
 		.Times(1);
 
-	deviceDriver.write(TEST_ADDR[0], 3);
+	deviceDriver.write(ADDR_LIST[0], 3);
 }
 
 TEST_F(DeviceDriverFixture, WriteAllDoneTest)
@@ -87,7 +87,25 @@ TEST_F(DeviceDriverFixture, WriteAllDoneTest)
 	EXPECT_CALL(mockFlash, read)
 		.Times(5);
 
-	for (long address : TEST_ADDR) {
+	for (long address : ADDR_LIST) {
 		deviceDriver.write(address, 3);
 	}
+}
+
+TEST_F(DeviceDriverFixture, AppReadTest)
+{
+	app.setFlashMem(&mockFlash);
+	EXPECT_CALL(mockFlash, read)
+		.WillRepeatedly(Return(0x07));
+
+	EXPECT_EQ("7 7 7 7 7", app.ReadAndPrint(ADDR_LIST[0], ADDR_LIST[4]));
+}
+
+TEST_F(DeviceDriverFixture, AppWriteTest)
+{
+	EXPECT_CALL(mockFlash, read)
+		.Times(5);
+
+	app.setFlashMem(&mockFlash);
+	app.WriteAll(0x8);
 }
